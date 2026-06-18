@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 
@@ -64,10 +65,13 @@ if st.button("Logout"):
     st.session_state.admin_logged_in = False
     st.rerun()
 
-if "applications" not in st.session_state:
-    st.session_state.applications = []
+DATA_FILE = "applications.csv"
 
-applications = st.session_state.applications
+if os.path.exists(DATA_FILE):
+    df = pd.read_csv(DATA_FILE)
+    applications = df.to_dict("records")
+else:
+    applications = []
 
 total = len(applications)
 eligible = len([a for a in applications if a["Status"] == "Eligible"])

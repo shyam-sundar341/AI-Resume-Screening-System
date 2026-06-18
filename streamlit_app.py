@@ -1,3 +1,17 @@
+import pandas as pd
+import os
+DATA_FILE = "applications.csv"
+
+def save_application(application):
+    df_new = pd.DataFrame([application])
+
+    if os.path.exists(DATA_FILE):
+        df_old = pd.read_csv(DATA_FILE)
+        df = pd.concat([df_old, df_new], ignore_index=True)
+    else:
+        df = df_new
+
+    df.to_csv(DATA_FILE, index=False)
 import streamlit as st
 import pdfplumber
 import tempfile
@@ -293,8 +307,6 @@ if st.session_state.analysis_done and st.session_state.current_result:
 
         if st.button("🚀 Apply Now"):
 
-            st.session_state.applications.append(
-                st.session_state.current_application
-            )
+            save_application(st.session_state.current_application)
 
             st.success("Application Submitted Successfully!")
