@@ -33,6 +33,7 @@ def extract_text_from_pdf(uploaded_file):
     with pdfplumber.open(temp_path) as pdf:
         for page in pdf.pages:
             page_text = page.extract_text()
+
             if page_text:
                 text += page_text + " "
 
@@ -63,6 +64,16 @@ def missing_skills(candidate_skills, required_skills):
 
 def suggest_improvements(missing):
     return [f"Add projects related to {skill}" for skill in missing]
+
+
+if "applications" not in st.session_state:
+    st.session_state.applications = []
+
+if "analysis_done" not in st.session_state:
+    st.session_state.analysis_done = False
+
+if "current_application" not in st.session_state:
+    st.session_state.current_application = None
 
 
 st.set_page_config(
@@ -125,8 +136,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown("<h1 class='main-title'>Technical technologies</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subtitle'>AI RESUME SCREENING SYSTEM</p>", unsafe_allow_html=True)
+st.markdown(
+    "<h1 class='main-title'>Technical technologies</h1>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    "<p class='subtitle'>AI RESUME SCREENING SYSTEM</p>",
+    unsafe_allow_html=True
+)
 
 st.markdown(
     """
@@ -141,20 +159,32 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown("<div class='card'><h3>⭐ Required Skills</h3>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='card'><h3>⭐ Required Skills</h3>",
+    unsafe_allow_html=True
+)
 
 for skill in REQUIRED_SKILLS:
-    st.markdown(f"<span class='skill'>{skill.title()}</span>", unsafe_allow_html=True)
+    st.markdown(
+        f"<span class='skill'>{skill.title()}</span>",
+        unsafe_allow_html=True
+    )
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("<div class='card'><h3>👤 Candidate Details</h3>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='card'><h3>👤 Candidate Details</h3>",
+    unsafe_allow_html=True
+)
 
 name = st.text_input("Full Name")
 email = st.text_input("Email Address")
 phone = st.text_input("Phone Number")
 
-resume = st.file_uploader("Upload Resume PDF", type=["pdf"])
+resume = st.file_uploader(
+    "Upload Resume PDF",
+    type=["pdf"]
+)
 
 analyze = st.button("🚀 Analyze Resume")
 
@@ -170,48 +200,101 @@ if analyze:
 
         candidate_skills = extract_skills(resume_text)
 
-        score = calculate_match(candidate_skills, REQUIRED_SKILLS)
+        score = calculate_match(
+            candidate_skills,
+            REQUIRED_SKILLS
+        )
 
-        missing = missing_skills(candidate_skills, REQUIRED_SKILLS)
+        missing = missing_skills(
+            candidate_skills,
+            REQUIRED_SKILLS
+        )
 
         suggestions = suggest_improvements(missing)
 
         status = "Eligible" if score >= 70 else "Not Eligible"
 
-        st.markdown("<div class='card'><h3>📊 Resume Analysis Report</h3>", unsafe_allow_html=True)
+        st.session_state.analysis_done = True
 
-        st.write(f"**Name:** {name}")
-        st.write(f"**Email:** {email}")
-        st.write(f"**Phone:** {phone}")
+        st.session_state.current_application = {
+            "Name": name,
+            "Email": email,
+            "Phone": phone,
+            "Score": score,
+            "Status": status
+        }
 
-        st.markdown(f"<div class='score'>{score}%</div>", unsafe_allow_html=True)
+        st.session_state.current_result = {
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "score": score,
+            "status": status,
+            "candidate_skills": candidate_skills,
+            "missing": missing,
+            "suggestions": suggestions
+        }
 
-        st.progress(int(score))
+if st.session_state.analysis_done and st.session_state.current_result:
 
-        if status == "Eligible":
-            st.success("✅ Eligible to Apply")
-        else:
-            st.error("❌ Not Eligible")
+    result = st.session_state.current_result
 
-        st.subheader("✅ Skills Matched")
-        if candidate_skills:
-            for skill in candidate_skills:
-                st.markdown(f"<span class='skill'>{skill.title()}</span>", unsafe_allow_html=True)
-        else:
-            st.warning("No matching skills found.")
+    st.markdown(
+        "<div class='card'><h3>📊 Resume Analysis Report</h3>",
+        unsafe_allow_html=True
+    )
 
-        st.subheader("⚠️ Missing Skills")
-        if missing:
-            for skill in missing:
-                st.error(skill.title())
-        else:
-            st.success("No missing skills found 🎉")
+    st.write(f"**Name:** {result['name']}")
+    st.write(f"**Email:** {result['email']}")
+    st.write(f"**Phone:** {result['phone']}")
 
-        st.subheader("💡 Suggestions")
-        if suggestions:
-            for suggestion in suggestions:
-                st.write("- " + suggestion)
-        else:
-            st.success("Excellent resume match!")
+    st.markdown(
+        f"<div class='score'>{result['score']}%</div>",
+        unsafe_allow_html=True
+    )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.progress(int(result["score"]))
+
+    if result["status"] == "Eligible":
+        st.success("✅ Eligible to Apply")
+    else:
+        st.error("❌ Not Eligible")
+
+    st.subheader("✅ Skills Matched")
+
+    if result["candidate_skills"]:
+        for skill in result["candidate_skills"]:
+            st.markdown(
+                f"<span class='skill'>{skill.title()}</span>",
+                unsafe_allow_html=True
+            )
+    else:
+        st.warning("No matching skills found.")
+
+    st.subheader("⚠️ Missing Skills")
+
+    if result["missing"]:
+        for skill in result["missing"]:
+            st.error(skill.title())
+    else:
+        st.success("No missing skills found 🎉")
+
+    st.subheader("💡 Suggestions")
+
+    if result["suggestions"]:
+        for suggestion in result["suggestions"]:
+            st.write("- " + suggestion)
+    else:
+        st.success("Excellent resume match!")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if result["status"] == "Eligible":
+
+        if st.button("🚀 Apply Now"):
+
+            st.session_state.applications.append(
+                st.session_state.current_application
+            )
+
+            st.success("Application Submitted Successfully!")
